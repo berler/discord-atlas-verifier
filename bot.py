@@ -57,7 +57,7 @@ def ignore_message(message):
         if config['channel'] == '*':
             # all channels are okay
             return False
-        elif message.channel.id == config['channel']:
+        elif config['channel'] in [message.channel.id, message.channel.name]:
             # message was in correct channel
             return False
 
@@ -175,7 +175,7 @@ def on_ready():
     # get the channel we want to use for announcements
     if config['announce_channel']:
         for channel in client.get_all_channels():
-            if channel.id == config['announce_channel']:
+            if config['announce_channel'] in [channel.id, channel.name]:
                 announce_channel = channel
                 break
 
