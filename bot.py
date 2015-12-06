@@ -176,6 +176,9 @@ def on_ready():
     if config['announce_channel']:
         for channel in client.get_all_channels():
             if config['announce_channel'] in [channel.id, channel.name]:
+                # this is ugly, but we need to tell python we are setting
+                # the global var
+                global announce_channel
                 announce_channel = channel
                 break
 
