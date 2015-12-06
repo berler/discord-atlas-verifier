@@ -116,7 +116,15 @@ def verify(user, link):
     client.send_message(user, msg)
 
 def verify_success(user, link):
-    # TODO: add user to correct group
+    # add user roles
+    # we need to first find the correct Member object on the server
+    # (we can't modify roles on User objects directly)
+    member = get_member(user)
+    if member is None:
+        # TODO: make a proper error message
+        return
+    client.add_roles(member, discord.Role(id=config['verified_role']))
+
     format_args = dict(
             name = user.name,
             mention_name = user.mention(),
@@ -131,6 +139,18 @@ def verify_success(user, link):
 
     verified_users.add(user.id)
     print('Verified user {} successfully'.format(user.id))
+
+def get_member(user):
+    for server in client.servers:
+        if server.id != config['server']:
+            continue
+
+        for member in server.members:
+            if member.id == user.id:
+                return member
+
+    # member not found
+    return None
 
 @client.event
 def on_ready():
@@ -153,7 +173,6 @@ def on_ready():
     print('------')
 
     # get the channel we want to use for announcements
-    # TODO: maybe make this be a different config
     if config['announce_channel']:
         for channel in client.get_all_channels():
             if channel.id == config['announce_channel']:
