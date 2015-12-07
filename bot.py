@@ -1,9 +1,12 @@
 #!/usr/bin/python3
 
+import logging
 import discord
 import json
 import requests
 from bs4 import BeautifulSoup
+
+logging.basicConfig(level=logging.WARNING)
 
 config = {}
 with open('config.json', 'r') as f:
