@@ -11,10 +11,21 @@ with open('config.json', 'r') as f:
 
 # keep a set of verified user id's so we can ignore them
 verified_users = set()
+verified_forum_ids = set()
+# keep track of users we are to verify manually (to avoid spamming mod chan)
+manually_verified_users = set()
+
+# hack to create file if it doesn't exist yet
+with open('verified_forum_ids.txt', 'a+') as f:
+    pass
+with open('verified_forum_ids.txt', 'r') as f:
+    for line in f.readlines():
+        verified_forum_ids.add(line.strip())
 
 # channel for publicly announcing when someone is verified
 # (This will get populated with the channel config after we connect)
 announce_channel = None
+mod_channel = None
 
 client = discord.Client()
 client.login(config['email'], config['password'])
@@ -116,21 +127,50 @@ def verify(user, link):
     client.send_message(user, msg)
 
 def verify_success(user, link):
+    forum_id = get_forum_id(link)
+    format_args = dict(
+            name = user.name,
+            mention_name = user.mention(),
+            id = user.id,
+            link = link,
+            forum_id = forum_id
+            )
+
+    # First, some sanity checks. If there are multiple Discord users with
+    # the same name, or the forum account has been used before, we will alert
+    # the mods, and not verify the user. We want to avoid having impersonators.
+    if dupe_user_names(user):
+        client.send_message(user, config['verified_profile_duplicate_name'])
+        if mod_channel is not None and user.id not in manually_verified_users:
+            msg = config['verified_public_message'].format(**format_args)
+            msg += config['verified_profile_duplicate_name_mods'].format(
+                    name = user.name,
+                    )
+            client.send_message(mod_channel, msg)
+            manually_verified_users.add(user.id)
+        return
+    elif forum_account_used(forum_id):
+        client.send_message(user, config['verified_profile_before'])
+        if mod_channel is not None and user.id not in manually_verified_users:
+            msg = config['verified_public_message'].format(**format_args)
+            msg += config['verified_profile_before_mods']
+            client.send_message(mod_channel, msg)
+            manually_verified_users.add(user.id)
+        return
+
     # add user roles
     # we need to first find the correct Member object on the server
     # (we can't modify roles on User objects directly)
     member = get_member(user)
     if member is None:
-        # TODO: make a proper error message
+        # TODO: make a proper error message, this shouldn't happen
         return
     client.add_roles(member, discord.Role(id=config['verified_role']))
 
-    format_args = dict(
-            name = user.name,
-            mention_name = user.mention(),
-            id = user.id,
-            link = link
-            )
+    verified_forum_ids.add(forum_id)
+    with open('verified_forum_ids.txt', 'a+') as f:
+        f.write(forum_id + '\n')
+
     priv_message = config['verified_private_message'].format(**format_args)
     client.send_message(user, priv_message)
     if announce_channel is not None:
@@ -139,6 +179,31 @@ def verify_success(user, link):
 
     verified_users.add(user.id)
     print('Verified user {} successfully'.format(user.id))
+
+def get_forum_id(link):
+    # strip the url prefix
+    url_suffix = link[len(config['verify_url_prefix']):]
+    for url_part in url_suffix.split('/'):
+        if url_part.isdigit():
+            return url_part
+
+def dupe_user_names(user):
+    count = 0
+    for server in client.servers:
+        if server.id != config['server']:
+            continue
+
+        for member in server.members:
+            # TODO: do a similarity check instead of comparing lowercase
+            # The point is to check for impersonators, so we might want to
+            # check for variations of the name like 'I' -> 'l' etc
+            if member.name.lower() == user.name.lower():
+                count += 1
+
+    return count > 1
+
+def forum_account_used(forum_id):
+    return forum_id in verified_forum_ids
 
 def get_member(user):
     for server in client.servers:
@@ -180,6 +245,8 @@ def on_ready():
                 # the global var
                 global announce_channel
                 announce_channel = channel
-                break
+            if config['mod_channel'] in [channel.id, channel.name]:
+                global mod_channel
+                mod_channel = channel
 
 client.run()
