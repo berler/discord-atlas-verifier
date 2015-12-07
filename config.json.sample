@@ -15,7 +15,7 @@
   "verification_error": "Oops, we had trouble loading the Atlas forum page. Please contact one of our mods or try again later.",
   "missing_verification_post": "We could not find your Discord User ID in your profile. Please make sure that you create a post with the exact message:\n\nDiscord User ID :: {id}",
   "verified_profile_before": "Looks good, but your profile has been used previously to verify a different Discord account. I have notified the mods to take a look at your account and they will approve you or contact you if necessary (please be patient). Thank you.",
-  "verified_profile_before_mods": "but that profile has been used for a different Discord account before. This user will require manual verification.",
+  "verified_profile_before_mods": " but that profile has been used for a different Discord account before. This user will require manual verification.",
   "verified_profile_duplicate_name": "Looks good, but your Discord name is the same as another user who is connected. I have notified the mods to take a look at your account and they will approve you or contact you if necessary (please be patient). Thank you.",
-  "verified_profile_duplicate_name_mods": "but there are duplicate users with name {name}. This user will require manual verification."
+  "verified_profile_duplicate_name_mods": " but there are duplicate users with name {name}. This user will require manual verification."
 }
