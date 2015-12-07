@@ -49,7 +49,7 @@ def on_message(message):
     user = message.author
     content = message.content
 
-    if content.startswith('!help'):
+    if content.startswith('!help') or content.startswith('!hello'):
         help_message(user)
     elif not is_verified(user):
         try_verify(message)
