@@ -8,6 +8,7 @@
   "verified_role": "<ROLE ID>",
   "verify_cookies": {"Vanilla": "<COOKIE>"},
   "verify_url_prefix": "https://forums.artillery.com/profile/",
+  "welcome_message": "Welcome {mention_name} to the Atlas Discord Server. I have sent you a private message with instructions on how to verify your account. If you need help please use this channel or ask one of our mods.",
   "help_message": "Welcome {mention_name} to the Atlas Discord Server. You must verify that you have an Atlas account before you may see content or talk with other users.\n\nTo verify your Atlas account, please post the following message on your Atlas forum profile:\n\nDiscord User ID :: {id}\n\n\nOnce you have done this, send me a private message with a link to your forum profile.\n\nNote that I am just a bot, so if you need help please post in the #verification-requests channel or pm one of the mods. If you would like to see this message again, send me a private message with the text: !help",
   "verified_private_message": "Congrats {name}. You have been verified.",
   "verified_public_message": "{mention_name} (id: {id}) has been verified with profile: {link}",

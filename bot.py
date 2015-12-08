@@ -43,6 +43,7 @@ def on_member_join(member):
     print('{} [id = {}] joined the server'.format(member.name, member.id))
 
     help_message(member)
+    welcome(member)
 
 @client.event
 def on_message(message):
@@ -77,6 +78,15 @@ def ignore_message(message):
 
     # otherwise, ignore message
     return True
+
+def welcome(user):
+    m = config['welcome_message'].format(
+            name = user.name,
+            mention_name = user.mention(),
+            id = user.id,
+            )
+    if announce_channel is not None:
+        client.send_message(announce_channel, m)
 
 def help_message(user):
     m = config['help_message'].format(
