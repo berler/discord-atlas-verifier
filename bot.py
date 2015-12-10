@@ -226,6 +226,9 @@ def forum_account_used(forum_id):
     return forum_id in verified_forum_ids
 
 def get_member(user):
+    if isinstance(user, discord.Member) and user.server.id == config['server']:
+        return user
+
     for server in client.servers:
         if server.id != config['server']:
             continue
