@@ -42,6 +42,13 @@ def on_member_join(member):
     # debug!
     print('{} [id = {}] joined the server'.format(member.name, member.id))
 
+    # check for already being verified
+    for role in member.roles:
+        if role.id == config['verified_role']:
+            print('{} is already verified'.format(member.name))
+            verified_users.add(member.id)
+            return
+
     help_message(member)
     welcome(member)
 
@@ -242,12 +249,14 @@ def on_ready():
         if server.id != config['server']:
             continue
 
+        print('total users on the server:', len(server.members))
+
         for member in server.members:
             for role in member.roles:
                 if role.id == config['verified_role']:
                     verified_users.add(member.id)
 
-    print('already verified users:', verified_users)
+    print('already verified users:', len(verified_users))
     print('------')
 
     # get the channel we want to use for announcements
