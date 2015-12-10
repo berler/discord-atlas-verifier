@@ -3,7 +3,6 @@
   "password": "<PASSWORD>",
   "server":  "<SERVER ID>",
   "channel": "verification-requests",
-  "announce_channel": "general",
   "mod_channel": "mods",
   "verified_role": "<ROLE ID>",
   "verify_cookies": {"Vanilla": "<COOKIE>"},

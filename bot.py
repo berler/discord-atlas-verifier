@@ -25,9 +25,11 @@ with open('verified_forum_ids.txt', 'r') as f:
     for line in f.readlines():
         verified_forum_ids.add(line.strip())
 
-# channel for publicly announcing when someone is verified
-# (This will get populated with the channel config after we connect)
-announce_channel = None
+# The channels we care about. public_channel (also known as the requests
+# channel) is where the bot will send public welcome messages as well as
+# announcing when people are verified. mod_channel is where the bot will
+# send messages that should only be visible to mods.
+public_channel = None
 mod_channel = None
 
 client = discord.Client()
@@ -92,8 +94,8 @@ def welcome(user):
             mention_name = user.mention(),
             id = user.id,
             )
-    if announce_channel is not None:
-        client.send_message(announce_channel, m)
+    if public_channel is not None:
+        client.send_message(public_channel, m)
 
 def help_message(user):
     m = config['help_message'].format(
@@ -193,9 +195,9 @@ def verify_success(user, link):
 
     priv_message = config['verified_private_message'].format(**format_args)
     client.send_message(user, priv_message)
-    if announce_channel is not None:
+    if public_channel is not None:
         pub_message = config['verified_public_message'].format(**format_args)
-        client.send_message(announce_channel, pub_message)
+        client.send_message(public_channel, pub_message)
 
     verified_users.add(user.id)
     print('Verified user {} successfully'.format(user.id))
@@ -262,16 +264,15 @@ def on_ready():
     print('already verified users:', len(verified_users))
     print('------')
 
-    # get the channel we want to use for announcements
-    if config['announce_channel']:
-        for channel in client.get_all_channels():
-            if config['announce_channel'] in [channel.id, channel.name]:
-                # this is ugly, but we need to tell python we are setting
-                # the global var
-                global announce_channel
-                announce_channel = channel
-            if config['mod_channel'] in [channel.id, channel.name]:
-                global mod_channel
-                mod_channel = channel
+    # find the channels we care about
+    for channel in client.get_all_channels():
+        if config['channel'] in [channel.id, channel.name]:
+            # this is ugly, but we need to tell python we are setting
+            # the global var
+            global public_channel
+            public_channel = channel
+        if config['mod_channel'] in [channel.id, channel.name]:
+            global mod_channel
+            mod_channel = channel
 
 client.run()
