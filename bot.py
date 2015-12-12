@@ -183,6 +183,7 @@ def refresh():
         return 'Verified cache refreshed (no changes)'
 
     # replace
+    global verified_users
     verified_users = new_verified_users
     return 'Verified cache refreshed ({} added, {} removed)'.format(added, removed)
 
