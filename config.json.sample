@@ -5,6 +5,7 @@
   "channel": "verification-requests",
   "mod_channel": "mods",
   "verified_role": "<ROLE ID>",
+  "mod_role": "<ROLE ID>",
   "verify_cookies": {"Vanilla": "<COOKIE>"},
   "verify_url_prefix": "https://forums.artillery.com/profile/",
   "welcome_message": "Welcome {mention_name} to the Atlas Discord Server. I have sent you a private message with instructions on how to verify your account. If you need help please use this channel or ask one of our mods.",

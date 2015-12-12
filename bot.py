@@ -1,12 +1,25 @@
 #!/usr/bin/python3
 
+import datetime
 import logging
+import subprocess
+import sys
 import discord
 import json
 import requests
 from bs4 import BeautifulSoup
 
 logging.basicConfig(level=logging.WARNING)
+
+startup_time = datetime.datetime.today()
+
+def get_version():
+    try:
+        return subprocess.check_output(['git', 'describe', '--tags', '--always'])
+    except Exception:
+        return 'unknown'
+
+version = get_version().strip()
 
 config = {}
 with open('config.json', 'r') as f:
@@ -66,6 +79,9 @@ def on_message(message):
         help_message(user)
     elif not is_verified(user):
         try_verify(message)
+    elif content.startswith('!'):
+        if is_mod(user):
+            mod_command(message)
 
 def ignore_message(message):
     if message.author == client.user:
@@ -109,6 +125,63 @@ def is_verified(user):
     # TODO: we might want some fallback to query the server in case our
     # local verified_users cache isn't right.
     return user.id in verified_users
+
+def is_mod(user):
+    # always check user roles for admin
+    member = get_member(user)
+    if member is None:
+        # not even on server, so can't be a mod
+        return False
+
+    for role in member.roles:
+        if config['mod_role'] == role.id:
+            return True
+
+    return False
+
+def mod_command(message):
+    response = None
+    if message.content == '!about':
+        response = about()
+    elif message.content == '!stats':
+        response = stats()
+    elif message.content == '!refresh':
+        response = refresh()
+    else:
+        return
+    client.send_message(message.channel, response)
+
+def about():
+    return 'python version: {}\ndiscord.py version: {}\nbot version: {}'.format(
+            sys.version, discord.__version__, version)
+
+def stats():
+    uptime = datetime.datetime.today() - startup_time
+    # strip ugly microseconds
+    nice_uptime = datetime.timedelta(uptime.days, uptime.seconds, 0)
+    return 'Bot uptime: {}\nVerified users: {}\nUnique forum profiles verified: {}'.format(
+            nice_uptime, len(verified_users), len(verified_forum_ids))
+
+def refresh():
+    # refresh verified users cache
+    new_verified_users = set()
+    for server in client.servers:
+        if config['server'] != server.id:
+            continue
+
+        for member in server.members:
+            if config['verified_role'] in [role.id for role in member.roles]:
+                new_verified_users.add(member.id)
+
+    added = len(new_verified_users.difference(verified_users))
+    removed = len(verified_users.difference(new_verified_users))
+
+    if added == 0 and removed == 0:
+        return 'Verified cache refreshed (no changes)'
+
+    # replace
+    verified_users = new_verified_users
+    return 'Verified cache refreshed ({} added, {} removed)'.format(added, removed)
 
 def try_verify(message):
     user = message.author
