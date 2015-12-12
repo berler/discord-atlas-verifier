@@ -100,6 +100,9 @@ def ignore_message(message):
         elif config['channel'] in [message.channel.id, message.channel.name]:
             # message was in correct channel
             return False
+        elif config['mod_channel'] in [message.channel.id, message.channel.name]:
+            # allow mod channel too
+            return False
 
     # otherwise, ignore message
     return True
