@@ -184,8 +184,8 @@ def refresh():
         return 'Verified cache refreshed (no changes)'
 
     # replace
-    global verified_users
-    verified_users = new_verified_users
+    verified_users.clear()
+    verified_users.update(new_verified_users)
     return 'Verified cache refreshed ({} added, {} removed)'.format(added, removed)
 
 def try_verify(message):
