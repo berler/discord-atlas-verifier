@@ -15,11 +15,12 @@ startup_time = datetime.datetime.today()
 
 def get_version():
     try:
-        return subprocess.check_output(['git', 'describe', '--tags', '--always'])
+        args = ['git', 'describe', '--tags', '--always']
+        return subprocess.check_output(args).decode('utf-8', 'ignore').strip()
     except Exception:
         return 'unknown'
 
-version = get_version().strip()
+version = get_version()
 
 config = {}
 with open('config.json', 'r') as f:
