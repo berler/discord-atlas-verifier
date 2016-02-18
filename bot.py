@@ -1,12 +1,14 @@
 #!/usr/bin/python3
 
+import asyncio
 import datetime
 import logging
 import subprocess
 import sys
-import discord
 import json
+
 import requests
+import discord
 from bs4 import BeautifulSoup
 
 logging.basicConfig(level=logging.WARNING)
@@ -47,9 +49,9 @@ public_channel = None
 mod_channel = None
 
 client = discord.Client()
-client.login(config['email'], config['password'])
 
 @client.event
+@asyncio.coroutine
 def on_member_join(member):
     server = member.server
     if server.id != config['server']:
@@ -65,10 +67,11 @@ def on_member_join(member):
             verified_users.add(member.id)
             return
 
-    help_message(member)
-    welcome(member)
+    yield from help_message(member)
+    yield from welcome(member)
 
 @client.event
+@asyncio.coroutine
 def on_message(message):
     if ignore_message(message):
         return
@@ -77,12 +80,12 @@ def on_message(message):
     content = message.content
 
     if content.startswith('!help') or content.startswith('!hello'):
-        help_message(user)
-    elif not is_verified(user):
-        try_verify(message)
+        yield from help_message(user)
     elif content.startswith('!'):
         if is_mod(user):
-            mod_command(message)
+            yield from mod_command(message)
+    elif not is_verified(user):
+        yield from try_verify(message)
 
 def ignore_message(message):
     if message.author == client.user:
@@ -108,22 +111,24 @@ def ignore_message(message):
     # otherwise, ignore message
     return True
 
+@asyncio.coroutine
 def welcome(user):
     m = config['welcome_message'].format(
             name = user.name,
-            mention_name = user.mention(),
+            mention_name = user.mention,
             id = user.id,
             )
     if public_channel is not None:
         client.send_message(public_channel, m)
 
+@asyncio.coroutine
 def help_message(user):
     m = config['help_message'].format(
             name = user.name,
-            mention_name = user.mention(),
+            mention_name = user.mention,
             id = user.id,
             )
-    client.send_message(user, m)
+    yield from client.send_message(user, m)
 
 def is_verified(user):
     # TODO: we might want some fallback to query the server in case our
@@ -143,6 +148,7 @@ def is_mod(user):
 
     return False
 
+@asyncio.coroutine
 def mod_command(message):
     response = None
     if message.content == '!about':
@@ -153,11 +159,11 @@ def mod_command(message):
         response = refresh()
     else:
         return
-    client.send_message(message.channel, response)
+    yield from client.send_message(message.channel, response)
 
 def about():
     return 'python version: {}\ndiscord.py version: {}\nbot version: {}'.format(
-            sys.version, discord.__version__, version)
+            sys.version.split()[0], discord.__version__, version)
 
 def stats():
     uptime = datetime.datetime.today() - startup_time
@@ -188,16 +194,19 @@ def refresh():
     verified_users.update(new_verified_users)
     return 'Verified cache refreshed ({} added, {} removed)'.format(added, removed)
 
+@asyncio.coroutine
 def try_verify(message):
     user = message.author
     content = message.content
     for word in content.split():
         if word.lower().startswith(config['verify_url_prefix']):
-            return verify(user, word)
+            ret = yield from verify(user, word)
+            return ret
         elif word.startswith('https://') or word.startswith('http://'):
-            client.send_message(user, config['invalid_link_message'])
+            yield from client.send_message(user, config['invalid_link_message'])
             return
 
+@asyncio.coroutine
 def verify(user, link):
     print('Attempting to verify user {} with link {}'.format(user.id, link))
 
@@ -206,7 +215,7 @@ def verify(user, link):
     r = requests.get(link, cookies=config['verify_cookies'])
     if r.status_code != requests.codes.ok:
         print('Error loading verification page:', r.status_code)
-        client.send_message(user, config['verification_error'])
+        yield from client.send_message(user, config['verification_error'])
         return
 
     # note: apparently the 'lxml' parser is faster, but you need to install it
@@ -218,19 +227,21 @@ def verify(user, link):
         print('Found Post:', text)
         if user.id in text and 'discord' in text.lower():
             # verify success!
-            return verify_success(user, link)
+            ret = yield from verify_success(user, link)
+            return ret
 
     print('No verification post found for user', user.id)
     msg = config['missing_verification_post'].format(
             id = user.id,
             )
-    client.send_message(user, msg)
+    yield from client.send_message(user, msg)
 
+@asyncio.coroutine
 def verify_success(user, link):
     forum_id = get_forum_id(link)
     format_args = dict(
             name = user.name,
-            mention_name = user.mention(),
+            mention_name = user.mention,
             id = user.id,
             link = link,
             forum_id = forum_id
@@ -240,21 +251,21 @@ def verify_success(user, link):
     # the same name, or the forum account has been used before, we will alert
     # the mods, and not verify the user. We want to avoid having impersonators.
     if dupe_user_names(user):
-        client.send_message(user, config['verified_profile_duplicate_name'])
+        yield from client.send_message(user, config['verified_profile_duplicate_name'])
         if mod_channel is not None and user.id not in manually_verified_users:
             msg = config['verified_public_message'].format(**format_args)
             msg += config['verified_profile_duplicate_name_mods'].format(
                     name = user.name,
                     )
-            client.send_message(mod_channel, msg)
+            yield from client.send_message(mod_channel, msg)
             manually_verified_users.add(user.id)
         return
     elif forum_account_used(forum_id):
-        client.send_message(user, config['verified_profile_before'])
+        yield from client.send_message(user, config['verified_profile_before'])
         if mod_channel is not None and user.id not in manually_verified_users:
             msg = config['verified_public_message'].format(**format_args)
             msg += config['verified_profile_before_mods']
-            client.send_message(mod_channel, msg)
+            yield from client.send_message(mod_channel, msg)
             manually_verified_users.add(user.id)
         return
 
@@ -265,17 +276,17 @@ def verify_success(user, link):
     if member is None:
         # TODO: make a proper error message, this shouldn't happen
         return
-    client.add_roles(member, discord.Role(id=config['verified_role']))
+    yield from client.add_roles(member, discord.Role(id=config['verified_role']))
 
     verified_forum_ids.add(forum_id)
     with open('verified_forum_ids.txt', 'a+') as f:
         f.write(forum_id + '\n')
 
     priv_message = config['verified_private_message'].format(**format_args)
-    client.send_message(user, priv_message)
+    yield from client.send_message(user, priv_message)
     if public_channel is not None:
         pub_message = config['verified_public_message'].format(**format_args)
-        client.send_message(public_channel, pub_message)
+        yield from client.send_message(public_channel, pub_message)
 
     verified_users.add(user.id)
     print('Verified user {} successfully'.format(user.id))
@@ -312,15 +323,13 @@ def get_member(user):
     for server in client.servers:
         if server.id != config['server']:
             continue
-
-        for member in server.members:
-            if member.id == user.id:
-                return member
+        return server.get_member(user.id)
 
     # member not found
     return None
 
 @client.event
+@asyncio.coroutine
 def on_ready():
     print('Logged in as')
     print(client.user.name)
@@ -353,4 +362,4 @@ def on_ready():
             global mod_channel
             mod_channel = channel
 
-client.run()
+client.run(config['email'], config['password'])

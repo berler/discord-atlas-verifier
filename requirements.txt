@@ -1,0 +1,3 @@
+git+https://github.com/Rapptz/discord.py@async
+beautifulsoup4==4.4.1
+requests==2.9.1
