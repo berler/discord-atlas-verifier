@@ -119,7 +119,7 @@ def welcome(user):
             id = user.id,
             )
     if public_channel is not None:
-        client.send_message(public_channel, m)
+        yield from client.send_message(public_channel, m)
 
 @asyncio.coroutine
 def help_message(user):
